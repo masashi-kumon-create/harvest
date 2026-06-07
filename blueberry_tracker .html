@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="収穫記録">
+<meta name="theme-color" content="#639922">
+<title>🫐 収穫記録</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+:root { --g: #639922; --gl: #EAF3DE; --gd: #3B6D11; --border: rgba(0,0,0,0.12); --red: #c0392b; --redl: #fff5f5; --redb: #f5c6c6; }
+header { background: #fff; border-bottom: 0.5px solid var(--border); padding: 12px 16px 0; position: sticky; top: 0; z-index: 10; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.app-title { font-size: 18px; font-weight: 600; color: var(--gd); }
+.today-badge { font-size: 12px; color: #888; }
+.nav { display: flex; }
+.nav-btn { flex: 1; padding: 10px 4px 12px; font-size: 13px; color: #888; text-align: center; cursor: pointer; border-bottom: 2px solid transparent; }
+.nav-btn.active { color: var(--g); border-bottom-color: var(--g); font-weight: 600; }
+.nav-btn i { display: block; font-size: 20px; margin-bottom: 2px; }
+main { padding: 16px; max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
+.status { font-size: 14px; padding: 13px 16px; border-radius: 10px; margin-bottom: 14px; display: none; }
+.status.ok { background: var(--gl); color: var(--gd); display: block; }
+.status.ng { background: #FCEBEB; color: #A32D2D; display: block; }
+.panel { display: none; }
+.panel.on { display: block; }
+.sec-label { font-size: 12px; color: #888; margin-bottom: 8px; font-weight: 500; letter-spacing: 0.03em; }
+.group-label { font-size: 11px; color: #aaa; margin: 14px 0 6px; letter-spacing: 0.05em; }
+.vgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 4px; }
+.vbtn { padding: 15px 8px; border: 1.5px solid var(--border); border-radius: 12px; background: #fff; color: #1a1a1a; font-size: 14px; font-family: inherit; cursor: pointer; text-align: center; min-height: 54px; transition: all 0.1s; }
+.vbtn.sel { border-color: var(--g); border-width: 2px; background: var(--gl); color: var(--gd); font-weight: 600; }
+.vbtn.unk { color: #999; }
+.vbtn.unk.sel { border-color: #888; background: #f1efe8; color: #444; }
+.vbtn:active { transform: scale(0.96); }
+.amount-box { background: #fff; border-radius: 16px; padding: 20px 16px; margin: 16px 0; border: 0.5px solid var(--border); }
+.amount-num { font-size: 56px; font-weight: 700; color: #1a1a1a; text-align: center; line-height: 1; letter-spacing: -2px; }
+.amount-unit { font-size: 16px; color: #999; text-align: center; margin-top: 4px; }
+.step-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+.sbtn { padding: 15px 4px; border: 1px solid var(--border); border-radius: 10px; background: #f9f9f9; color: #1a1a1a; font-size: 15px; font-family: inherit; cursor: pointer; text-align: center; min-height: 52px; }
+.sbtn.minus { color: var(--red); background: var(--redl); border-color: var(--redb); }
+.sbtn.plus { color: var(--gd); background: #f6fbee; border-color: #c8e6a0; }
+.sbtn:active { transform: scale(0.95); opacity: 0.8; }
+.sbtn.wide { grid-column: span 2; }
+.memo-wrap { margin-bottom: 16px; }
+.memo-input { width: 100%; padding: 14px 16px; font-size: 15px; font-family: inherit; border: 1px solid var(--border); border-radius: 12px; background: #fff; color: #1a1a1a; outline: none; }
+.memo-input:focus { border-color: var(--g); }
+.rec-btn { width: 100%; padding: 18px; border: none; border-radius: 14px; background: var(--g); color: #fff; font-size: 17px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.rec-btn:active { opacity: 0.85; transform: scale(0.99); }
+.rec-btn:disabled { opacity: 0.4; }
+
+/* 履歴 */
+.log-item { background: #fff; border-radius: 14px; border: 0.5px solid var(--border); padding: 14px; margin-bottom: 10px; }
+.log-row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.log-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.log-v { font-size: 15px; font-weight: 600; color: #1a1a1a; flex: 1; }
+.log-g { font-size: 17px; font-weight: 700; color: #1a1a1a; }
+.log-row2 { display: flex; align-items: center; justify-content: space-between; }
+.log-d { font-size: 12px; color: #aaa; }
+.log-memo { font-size: 12px; color: #888; margin-top: 4px; font-style: italic; }
+.log-actions { display: flex; gap: 8px; }
+.act-btn { padding: 6px 12px; border-radius: 8px; font-size: 13px; font-family: inherit; cursor: pointer; border: 1px solid var(--border); background: #f9f9f9; color: #555; }
+.act-btn.edit { border-color: #b5d4f4; color: #185FA5; background: #E6F1FB; }
+.act-btn.del { border-color: var(--redb); color: var(--red); background: var(--redl); }
+.act-btn:active { opacity: 0.7; }
+.empty { text-align: center; color: #bbb; font-size: 15px; padding: 3rem 0; }
+
+/* 編集モーダル（fixed使えないのでオーバーレイ方式） */
+.modal-overlay { background: rgba(0,0,0,0.45); border-radius: 16px; padding: 20px; margin-bottom: 16px; display: none; }
+.modal-overlay.on { display: block; }
+.modal-box { background: #fff; border-radius: 16px; padding: 20px; }
+.modal-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
+.modal-label { font-size: 12px; color: #888; margin-bottom: 6px; margin-top: 14px; font-weight: 500; }
+.modal-label:first-of-type { margin-top: 0; }
+.modal-input { width: 100%; padding: 13px 14px; font-size: 15px; font-family: inherit; border: 1px solid var(--border); border-radius: 10px; background: #f9f9f9; color: #1a1a1a; outline: none; }
+.modal-input:focus { border-color: var(--g); background: #fff; }
+.modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.modal-btn { padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; border: none; }
+.modal-btn.cancel { background: #f1efe8; color: #888; }
+.modal-btn.save { background: var(--g); color: #fff; }
+.modal-btn.del-confirm { background: var(--red); color: #fff; grid-column: span 2; }
+.modal-btn:active { opacity: 0.8; }
+.modal-notion-note { font-size: 12px; color: #aaa; margin-top: 10px; text-align: center; }
+
+/* グラフ・設定 */
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat-card { background: #fff; border-radius: 14px; padding: 16px; border: 0.5px solid var(--border); }
+.stat-card .lbl { font-size: 12px; color: #999; margin-bottom: 6px; }
+.stat-card .val { font-size: 26px; font-weight: 700; color: #1a1a1a; }
+.stat-card .val span { font-size: 14px; font-weight: 400; color: #999; }
+.stat-card .sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+.chart-wrap { background: #fff; border-radius: 14px; padding: 16px; border: 0.5px solid var(--border); margin-bottom: 12px; }
+.chart-title { font-size: 12px; color: #999; margin-bottom: 12px; font-weight: 500; }
+.cfg-card { background: #fff; border-radius: 14px; padding: 20px 16px; border: 0.5px solid var(--border); margin-bottom: 14px; }
+.cfg-lbl { font-size: 12px; color: #888; margin-bottom: 6px; margin-top: 16px; font-weight: 500; }
+.cfg-lbl:first-child { margin-top: 0; }
+.cfg-input { width: 100%; padding: 13px 14px; font-size: 15px; font-family: inherit; border: 1px solid var(--border); border-radius: 10px; background: #f9f9f9; color: #1a1a1a; outline: none; }
+.cfg-input:focus { border-color: var(--g); background: #fff; }
+.cfg-hint { font-size: 11px; color: #bbb; margin-top: 4px; }
+.save-btn { width: 100%; padding: 15px; margin-top: 18px; border: 2px solid var(--g); border-radius: 12px; background: #fff; color: var(--g); font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.save-btn:active { background: var(--gl); }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-top">
+    <div class="app-title">🫐 収穫記録</div>
+    <div class="today-badge" id="today-badge"></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-btn active" onclick="sw('record')" id="nt-record"><i class="ti ti-leaf" aria-hidden="true"></i>記録</div>
+    <div class="nav-btn" onclick="sw('log')" id="nt-log"><i class="ti ti-list" aria-hidden="true"></i>履歴</div>
+    <div class="nav-btn" onclick="sw('chart')" id="nt-chart"><i class="ti ti-chart-bar" aria-hidden="true"></i>グラフ</div>
+    <div class="nav-btn" onclick="sw('cfg')" id="nt-cfg"><i class="ti ti-settings" aria-hidden="true"></i>設定</div>
+  </nav>
+</header>
+<main>
+
+<!-- 記録 -->
+<div id="pn-record" class="panel on">
+  <div id="status" class="status"></div>
+  <div class="sec-label">品種を選ぶ</div>
+  <div class="group-label">判明品種</div>
+  <div class="vgrid" id="vg-known"></div>
+  <div class="group-label">品種不明</div>
+  <div class="vgrid" id="vg-unknown"></div>
+  <div class="amount-box">
+    <div class="amount-num" id="amt">0</div>
+    <div class="amount-unit">グラム</div>
+    <div class="step-grid">
+      <button class="sbtn minus" onclick="adj(-100)">－100</button>
+      <button class="sbtn minus" onclick="adj(-50)">－50</button>
+      <button class="sbtn minus" onclick="adj(-10)">－10</button>
+      <button class="sbtn plus" onclick="adj(10)">＋10</button>
+      <button class="sbtn plus" onclick="adj(50)">＋50</button>
+      <button class="sbtn plus" onclick="adj(100)">＋100</button>
+      <button class="sbtn plus wide" onclick="adj(200)">＋200</button>
+      <button class="sbtn plus" onclick="adj(500)">＋500</button>
+    </div>
+  </div>
+  <div class="memo-wrap">
+    <input class="memo-input" type="text" id="memo" placeholder="メモ（天気・樹の状態など）">
+  </div>
+  <button class="rec-btn" id="rec-btn" onclick="record()">Notionに記録する</button>
+</div>
+
+<!-- 履歴 -->
+<div id="pn-log" class="panel">
+  <!-- 編集モーダル -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-box">
+      <div class="modal-title" id="modal-title">記録を編集</div>
+      <div class="modal-label">品種</div>
+      <select class="modal-input" id="edit-variety"></select>
+      <div class="modal-label">収穫量（g）</div>
+      <input class="modal-input" type="number" id="edit-amount" min="0" step="10">
+      <div class="modal-label">日付</div>
+      <input class="modal-input" type="date" id="edit-date">
+      <div class="modal-label">メモ</div>
+      <input class="modal-input" type="text" id="edit-memo" placeholder="メモ（任意）">
+      <div class="modal-btns">
+        <button class="modal-btn cancel" onclick="closeModal()">キャンセル</button>
+        <button class="modal-btn save" onclick="saveEdit()">保存する</button>
+      </div>
+      <div class="modal-notion-note" id="modal-notion-note"></div>
+    </div>
+  </div>
+  <!-- 削除確認モーダル -->
+  <div class="modal-overlay" id="del-modal">
+    <div class="modal-box">
+      <div class="modal-title">この記録を削除しますか？</div>
+      <div id="del-preview" style="font-size:14px;color:#666;margin-bottom:4px;"></div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:4px;" id="del-notion-note"></div>
+      <div class="modal-btns">
+        <button class="modal-btn cancel" onclick="closeDelModal()">キャンセル</button>
+        <button class="modal-btn del-confirm" onclick="confirmDelete()">削除する</button>
+      </div>
+    </div>
+  </div>
+  <div id="log-list"></div>
+</div>
+
+<!-- グラフ -->
+<div id="pn-chart" class="panel">
+  <div class="stat-grid" id="stat-grid"></div>
+  <div class="chart-wrap">
+    <div class="chart-title">品種別累積収穫量 (g)</div>
+    <div style="position:relative;width:100%;height:240px;"><canvas id="c1" role="img" aria-label="品種別累積収穫量"></canvas></div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">日別収穫推移 (g)</div>
+    <div style="position:relative;width:100%;height:180px;"><canvas id="c2" role="img" aria-label="日別収穫推移"></canvas></div>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div id="pn-cfg" class="panel">
+  <div id="cfg-status" class="status"></div>
+  <div class="cfg-card">
+    <div class="cfg-lbl">Notion Integration Token</div>
+    <input class="cfg-input" type="password" id="cfg-token" placeholder="secret_...">
+    <div class="cfg-lbl">データベースID</div>
+    <input class="cfg-input" type="text" id="cfg-db" placeholder="ac7d530f8ca148bf92812a4939dcd1dc">
+    <div class="cfg-hint">🫐 ブルーベリー収穫記録 のDB ID</div>
+    <div class="cfg-lbl">農園場所（任意）</div>
+    <select class="cfg-input" id="cfg-loc">
+      <option value="">選択しない</option>
+      <option value="現在地">現在地</option>
+      <option value="中田">中田</option>
+    </select>
+    <button class="save-btn" onclick="saveCfg()">保存する</button>
+  </div>
+</div>
+
+</main>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const VK=[
+  {name:'ホームベル',color:'#7F77DD',dot:'#534AB7'},
+  {name:'ティフブルー',color:'#378ADD',dot:'#185FA5'},
+  {name:'バルドウィン',color:'#639922',dot:'#3B6D11'},
+  {name:'ブルーシャワー',color:'#1D9E75',dot:'#0F6E56'},
+  {name:'ピンクレモネード',color:'#D4537E',dot:'#993556'},
+];
+const VU=[
+  {name:'不明①',color:'#888780',dot:'#5F5E5A',u:true},
+  {name:'不明②',color:'#B4B2A9',dot:'#444441',u:true},
+  {name:'不明③',color:'#D3D1C7',dot:'#5F5E5A',u:true},
+];
+const VA=[...VK,...VU];
+
+let sel=null, amt=0;
+let logs=JSON.parse(localStorage.getItem('bb_logs')||'[]');
+let cfg=JSON.parse(localStorage.getItem('bb_cfg')||'{}');
+let ch1,ch2;
+let editingIdx=null, deletingIdx=null;
+
+function saveLogs(){ localStorage.setItem('bb_logs',JSON.stringify(logs.slice(0,200))); }
+
+function init(){
+  const t=new Date();
+  document.getElementById('today-badge').textContent=(t.getMonth()+1)+'月'+t.getDate()+'日';
+  buildGrid('vg-known',VK,0);
+  buildGrid('vg-unknown',VU,VK.length);
+  // 編集モーダルの品種セレクト構築
+  const sel_el=document.getElementById('edit-variety');
+  VA.forEach(v=>{ const o=document.createElement('option'); o.value=v.name; o.textContent=v.name; sel_el.appendChild(o); });
+  if(cfg.token) document.getElementById('cfg-token').value=cfg.token;
+  if(cfg.db)    document.getElementById('cfg-db').value=cfg.db;
+  if(cfg.loc)   document.getElementById('cfg-loc').value=cfg.loc;
+  renderLog();
+}
+
+function buildGrid(id,arr,off){
+  const g=document.getElementById(id);
+  arr.forEach((v,i)=>{
+    const b=document.createElement('button');
+    b.className='vbtn'+(v.u?' unk':'');
+    b.id='vb'+(off+i); b.textContent=v.name;
+    b.onclick=()=>selV(off+i);
+    g.appendChild(b);
+  });
+}
+
+function selV(i){ sel=i; document.querySelectorAll('.vbtn').forEach((b,j)=>b.classList.toggle('sel',j===i)); }
+function adj(d){ amt=Math.max(0,amt+d); document.getElementById('amt').textContent=amt; }
+
+function sw(tab){
+  ['record','log','chart','cfg'].forEach(t=>{
+    document.getElementById('pn-'+t).classList.toggle('on',t===tab);
+    document.getElementById('nt-'+t).classList.toggle('active',t===tab);
+  });
+  if(tab==='chart') renderCharts();
+  if(tab==='log') renderLog();
+}
+
+function showSt(msg,ok,id='status'){
+  const el=document.getElementById(id);
+  el.textContent=msg; el.className='status '+(ok?'ok':'ng');
+  setTimeout(()=>{ el.style.display='none'; },4000);
+}
+
+function fmtDbId(id){ return id.replace(/-/g,'').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/,'$1-$2-$3-$4-$5'); }
+
+function notionHeaders(){ return {'Authorization':'Bearer '+cfg.token,'Content-Type':'application/json','Notion-Version':'2022-06-28'}; }
+
+async function record(){
+  if(sel===null){ showSt('品種を選んでください',false); return; }
+  if(amt<=0){ showSt('収穫量を入力してください',false); return; }
+  const v=VA[sel];
+  const memo=document.getElementById('memo').value.trim();
+  const today=new Date().toISOString().slice(0,10);
+  const btn=document.getElementById('rec-btn');
+  btn.disabled=true; btn.textContent='記録中...';
+
+  let notionPageId=null;
+  if(cfg.token&&cfg.db){
+    try{
+      const props=buildProps(v.name,amt,today,memo);
+      const res=await fetch('https://api.notion.com/v1/pages',{
+        method:'POST',
+        headers:notionHeaders(),
+        body:JSON.stringify({parent:{database_id:fmtDbId(cfg.db)},properties:props})
+      });
+      if(res.ok){ const d=await res.json(); notionPageId=d.id; }
+    }catch(e){}
+  }
+
+  logs.unshift({date:today,variety:v.name,amount:amt,memo,ts:Date.now(),notionPageId});
+  saveLogs();
+  const ok=!!notionPageId;
+  showSt(ok?'Notionに記録しました ✓':cfg.token?'ローカルに保存（Notion接続エラー）':'ローカルに保存しました（Notion未設定）',ok);
+  amt=0; document.getElementById('amt').textContent=0; document.getElementById('memo').value='';
+  btn.disabled=false; btn.textContent='Notionに記録する';
+}
+
+function buildProps(variety,amount,date,memo){
+  const props={
+    'Name':{title:[{text:{content:date+' '+variety}}]},
+    '品種':{select:{name:variety}},
+    'グラム数':{number:amount},
+    '日付':{date:{start:date}},
+  };
+  if(memo) props['メモ']={rich_text:[{text:{content:memo}}]};
+  if(cfg.loc) props['農園場所']={select:{name:cfg.loc}};
+  return props;
+}
+
+// ---- 履歴表示 ----
+function renderLog(){
+  const el=document.getElementById('log-list');
+  if(!logs.length){ el.innerHTML='<div class="empty">記録がまだありません</div>'; return; }
+  el.innerHTML=logs.map((l,i)=>{
+    const v=VA.find(x=>x.name===l.variety);
+    const dot=v?v.dot:'#888';
+    const notionTag=l.notionPageId?'<span style="font-size:11px;color:#639922;">● Notion連携済</span>':'<span style="font-size:11px;color:#bbb;">○ ローカルのみ</span>';
+    return `<div class="log-item" id="li-${i}">
+      <div class="log-row1">
+        <div class="log-dot" style="background:${dot}"></div>
+        <div class="log-v">${l.variety}</div>
+        <div class="log-g">${l.amount}g</div>
+      </div>
+      <div class="log-row2">
+        <div>
+          <div class="log-d">${l.date} ${notionTag}</div>
+          ${l.memo?`<div class="log-memo">${l.memo}</div>`:''}
+        </div>
+        <div class="log-actions">
+          <button class="act-btn edit" onclick="openEdit(${i})"><i class="ti ti-edit" style="font-size:14px" aria-hidden="true"></i></button>
+          <button class="act-btn del" onclick="openDel(${i})"><i class="ti ti-trash" style="font-size:14px" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- 編集モーダル ----
+function openEdit(i){
+  editingIdx=i;
+  const l=logs[i];
+  document.getElementById('edit-variety').value=l.variety;
+  document.getElementById('edit-amount').value=l.amount;
+  document.getElementById('edit-date').value=l.date;
+  document.getElementById('edit-memo').value=l.memo||'';
+  document.getElementById('modal-notion-note').textContent=l.notionPageId?'保存時にNotionにも反映します':'※ Notion未連携のためローカルのみ更新します';
+  document.getElementById('edit-modal').classList.add('on');
+  document.getElementById('edit-modal').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function closeModal(){
+  document.getElementById('edit-modal').classList.remove('on');
+  editingIdx=null;
+}
+
+async function saveEdit(){
+  if(editingIdx===null) return;
+  const l=logs[editingIdx];
+  const newVariety=document.getElementById('edit-variety').value;
+  const newAmount=parseInt(document.getElementById('edit-amount').value)||0;
+  const newDate=document.getElementById('edit-date').value;
+  const newMemo=document.getElementById('edit-memo').value.trim();
+
+  const saveBtn=document.querySelector('#edit-modal .modal-btn.save');
+  saveBtn.textContent='保存中...'; saveBtn.disabled=true;
+
+  let notionOk=false;
+  if(l.notionPageId&&cfg.token){
+    try{
+      const props=buildProps(newVariety,newAmount,newDate,newMemo);
+      const res=await fetch('https://api.notion.com/v1/pages/'+l.notionPageId,{
+        method:'PATCH',
+        headers:notionHeaders(),
+        body:JSON.stringify({properties:props})
+      });
+      notionOk=res.ok;
+    }catch(e){}
+  }
+
+  logs[editingIdx]={...l,variety:newVariety,amount:newAmount,date:newDate,memo:newMemo};
+  saveLogs();
+  closeModal();
+  renderLog();
+
+  const msg=l.notionPageId?(notionOk?'Notionにも反映しました ✓':'ローカルのみ更新（Notion反映エラー）'):'ローカルを更新しました';
+  showSt(msg,notionOk||!l.notionPageId,'status');
+  sw('log');
+}
+
+// ---- 削除モーダル ----
+function openDel(i){
+  deletingIdx=i;
+  const l=logs[i];
+  document.getElementById('del-preview').textContent=l.date+' '+l.variety+' '+l.amount+'g';
+  document.getElementById('del-notion-note').textContent=l.notionPageId?'Notionのレコードも削除します':'ローカルのみ削除します';
+  document.getElementById('del-modal').classList.add('on');
+  document.getElementById('del-modal').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function closeDelModal(){
+  document.getElementById('del-modal').classList.remove('on');
+  deletingIdx=null;
+}
+
+async function confirmDelete(){
+  if(deletingIdx===null) return;
+  const l=logs[deletingIdx];
+  const btn=document.querySelector('#del-modal .del-confirm');
+  btn.textContent='削除中...'; btn.disabled=true;
+
+  if(l.notionPageId&&cfg.token){
+    try{
+      await fetch('https://api.notion.com/v1/pages/'+l.notionPageId,{
+        method:'PATCH',
+        headers:notionHeaders(),
+        body:JSON.stringify({in_trash:true})
+      });
+    }catch(e){}
+  }
+
+  logs.splice(deletingIdx,1);
+  saveLogs();
+  btn.textContent='削除する'; btn.disabled=false;
+  closeDelModal();
+  renderLog();
+  showSt('削除しました',true,'status');
+  sw('log');
+}
+
+// ---- グラフ ----
+function renderCharts(){
+  const totals={};
+  VA.forEach(v=>totals[v.name]=0);
+  logs.forEach(l=>{ if(totals[l.variety]!==undefined) totals[l.variety]+=l.amount; });
+  const total=Object.values(totals).reduce((a,b)=>a+b,0);
+  const today=new Date().toISOString().slice(0,10);
+  const todayT=logs.filter(l=>l.date===today).reduce((a,l)=>a+l.amount,0);
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat-card"><div class="lbl">今日の収穫</div><div class="val">${todayT.toLocaleString()}<span> g</span></div></div>
+    <div class="stat-card"><div class="lbl">累積収穫</div><div class="val">${total.toLocaleString()}<span> g</span></div><div class="sub">${logs.length}回記録</div></div>
+  `;
+  if(ch1) ch1.destroy();
+  if(ch2) ch2.destroy();
+  ch1=new Chart(document.getElementById('c1'),{
+    type:'bar',
+    data:{labels:VA.map(v=>v.name),datasets:[{data:VA.map(v=>totals[v.name]),backgroundColor:VA.map(v=>v.color+'CC'),borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:35}},y:{ticks:{font:{size:11}}}}}
+  });
+  const dm={};
+  logs.forEach(l=>{ dm[l.date]=(dm[l.date]||0)+l.amount; });
+  const dates=Object.keys(dm).sort();
+  ch2=new Chart(document.getElementById('c2'),{
+    type:'line',
+    data:{labels:dates,datasets:[{data:dates.map(d=>dm[d]),borderColor:'#639922',backgroundColor:'rgba(99,153,34,0.1)',fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:'#639922'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11},maxRotation:30}},y:{ticks:{font:{size:11}}}}}
+  });
+}
+
+// ---- 設定 ----
+function saveCfg(){
+  cfg.token=document.getElementById('cfg-token').value.trim();
+  cfg.db=document.getElementById('cfg-db').value.trim();
+  cfg.loc=document.getElementById('cfg-loc').value;
+  localStorage.setItem('bb_cfg',JSON.stringify(cfg));
+  showSt('設定を保存しました',true,'cfg-status');
+}
+
+init();
+</script>
+</body>
+</html>
